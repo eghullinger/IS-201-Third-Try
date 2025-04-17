@@ -1,0 +1,37 @@
+p {
+    font-weight: bold;
+    font-size: 20px; 
+  }
+  
+  #top {
+    text-decoration: underline;
+  }
+  
+  .emphasizedtext {
+    font-style: italic;
+    color: black; 
+  }
+  
+  body {
+    background-color: #FFF4F2;
+    font-family: Cambria, Cochin, Georgia, Times, 'Times New Roman', serif;
+    text-align: center;
+    border: dotted black;
+    margin: 20px;
+    padding: 10px;
+  }
+  
+  .centered-list {
+    padding-left: 0;
+    list-style-position: outside;
+    margin: 0 auto;
+    display: table;
+    text-align: left;
+  }
+  
+ 
+  ol.centered-list > li > ul.centered-list {
+    margin: 0;
+    padding-left: 24px;
+  }
+    

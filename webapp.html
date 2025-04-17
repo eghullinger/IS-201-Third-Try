@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Farkle Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-emerald-200 to-sky-200 min-h-screen flex flex-col items-center justify-center font-sans">
+
+  <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md text-center space-y-4">
+    <h1 class="text-3xl font-bold text-gray-800">🎲 Farkle Game</h1>
+
+    <!-- Player Name Input -->
+    <div id="nameInputContainer" class="space-y-2">
+      <input id="playerNameInput" type="text" placeholder="Enter your name"
+             class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"/>
+      <button onclick="startGame()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded">Start Game</button>
+    </div>
+
+    <!-- Game UI -->
+    <div id="gameContainer" class="hidden">
+      <p class="font-semibold">Current Turn: <span id="turn" class="text-blue-600">Player</span></p>
+
+      <div class="grid grid-cols-2 gap-6 my-3">
+        <div>
+          <h2 class="text-lg font-bold"><span id="playerNameDisplay">You</span></h2>
+          <p>Total: <span id="playerTotal">0</span></p>
+          <p>Current: <span id="playerCurrent">0</span></p>
+        </div>
+        <div>
+          <h2 class="text-lg font-bold">Computer</h2>
+          <p>Total: <span id="computerTotal">0</span></p>
+          <p>Current: <span id="computerCurrent">0</span></p>
+        </div>
+      </div>
+
+      <div id="dice-container" class="flex justify-center space-x-3 my-4"></div>
+
+      <p id="message" class="text-red-600 font-medium my-2"></p>
+
+      <div id="controls" class="space-x-4">
+        <button onclick="rollDice()" id="rollBtn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded">🎲 Roll</button>
+        <button onclick="bankPoints()" id="bankBtn" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded">💰 Bank</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const WINNING_SCORE = 10000;
+
+    let playerTotal = 0;
+    let computerTotal = 0;
+    let currentScore = 0;
+    let isPlayerTurn = true;
+    let gameOver = false;
+    let playerName = 'Player';
+    let finalTurn = false;
+
+    const diceContainer = document.getElementById('dice-container');
+    const playerTotalEl = document.getElementById('playerTotal');
+    const playerCurrentEl = document.getElementById('playerCurrent');
+    const computerTotalEl = document.getElementById('computerTotal');
+    const computerCurrentEl = document.getElementById('computerCurrent');
+    const messageEl = document.getElementById('message');
+    const turnEl = document.getElementById('turn');
+    const rollBtn = document.getElementById('rollBtn');
+    const bankBtn = document.getElementById('bankBtn');
+    const playerNameDisplay = document.getElementById('playerNameDisplay');
+
+    function startGame() {
+      const nameInput = document.getElementById('playerNameInput').value.trim();
+      if (nameInput !== '') {
+        playerName = nameInput;
+      }
+      document.getElementById('playerNameDisplay').textContent = playerName;
+      document.getElementById('nameInputContainer').classList.add('hidden');
+      document.getElementById('gameContainer').classList.remove('hidden');
+    }
+
+    function rollDice() {
+      if (gameOver) return;
+
+      diceContainer.innerHTML = '';
+      messageEl.textContent = '';
+      const dice = [];
+      for (let i = 0; i < 6; i++) {
+        const roll = Math.floor(Math.random() * 6) + 1;
+        dice.push(roll);
+        const die = document.createElement('div');
+        die.className = 'w-10 h-10 bg-yellow-100 border-2 border-yellow-400 rounded-lg shadow-inner text-xl flex items-center justify-center';
+        die.textContent = roll;
+        diceContainer.appendChild(die);
+      }
+
+      const roundScore = calculateScore(dice);
+      if (roundScore === 0) {
+        messageEl.textContent = 'Farkle! No scoring dice.';
+        currentScore = 0;
+        updateCurrentScore();
+        setTimeout(switchTurn, 1000);
+      } else {
+        currentScore += roundScore;
+        updateCurrentScore();
+      }
+    }
+
+    function calculateScore(dice) {
+      let counts = {};
+      dice.forEach(die => counts[die] = (counts[die] || 0) + 1);
+      let tempScore = 0;
+
+      for (let [num, count] of Object.entries(counts)) {
+        num = parseInt(num);
+        if (count >= 3) {
+          tempScore += (num === 1) ? 1000 : num * 100;
+          count -= 3;
+        }
+        if (num === 1) tempScore += count * 100;
+        if (num === 5) tempScore += count * 50;
+      }
+
+      return tempScore;
+    }
+
+    function bankPoints() {
+      if (isPlayerTurn) {
+        playerTotal += currentScore;
+      } else {
+        computerTotal += currentScore;
+      }
+      currentScore = 0;
+      updateScores();
+      checkWinCondition();
+    }
+
+    function updateScores() {
+      playerTotalEl.textContent = playerTotal;
+      computerTotalEl.textContent = computerTotal;
+      updateCurrentScore();
+    }
+
+    function updateCurrentScore() {
+      if (isPlayerTurn) {
+        playerCurrentEl.textContent = currentScore;
+        computerCurrentEl.textContent = 0;
+      } else {
+        computerCurrentEl.textContent = currentScore;
+        playerCurrentEl.textContent = 0;
+      }
+    }
+
+    function checkWinCondition() {
+      if (playerTotal >= WINNING_SCORE && !finalTurn && isPlayerTurn) {
+        finalTurn = true;
+        messageEl.textContent = `${playerName} reached 10,000! Computer gets one final turn.`;
+        setTimeout(switchTurn, 1500);
+      } else if (computerTotal >= WINNING_SCORE && finalTurn) {
+        declareWinner();
+      } else if (playerTotal >= WINNING_SCORE && finalTurn) {
+        declareWinner();
+      } else {
+        switchTurn();
+      }
+    }
+
+    function declareWinner() {
+      gameOver = true;
+      let winner = '';
+      if (playerTotal >= WINNING_SCORE && playerTotal > computerTotal) {
+        winner = `${playerName} wins! 🎉`;
+      } else if (computerTotal >= WINNING_SCORE && computerTotal > playerTotal) {
+        winner = 'Computer wins! 🤖';
+      } else {
+        winner = 'It\'s a tie!';
+      }
+      messageEl.textContent = winner;
+
+      setTimeout(() => {
+        resetGame();
+      }, 4000);
+    }
+
+    function switchTurn() {
+      isPlayerTurn = !isPlayerTurn;
+      currentScore = 0;
+      updateScores();
+      turnEl.textContent = isPlayerTurn ? playerName : 'Computer';
+
+      if (!isPlayerTurn && !gameOver) {
+        rollBtn.disabled = true;
+        bankBtn.disabled = true;
+        setTimeout(computerTurn, 1000);
+      } else {
+        rollBtn.disabled = false;
+        bankBtn.disabled = false;
+      }
+    }
+
+    function computerTurn() {
+      const riskAndRoll = () => {
+        if (!isPlayerTurn && !gameOver) {
+          rollDice();
+          if (currentScore === 0) return;
+          if (currentScore >= 300) {
+            setTimeout(bankPoints, 1000);
+          } else {
+            setTimeout(riskAndRoll, 1200);
+          }
+        }
+      };
+      riskAndRoll();
+    }
+
+    function resetGame() {
+      playerTotal = 0;
+      computerTotal = 0;
+      currentScore = 0;
+      isPlayerTurn = true;
+      gameOver = false;
+      finalTurn = false;
+      updateScores();
+      turnEl.textContent = playerName;
+      messageEl.textContent = '';
+      diceContainer.innerHTML = '';
+    }
+  </script>
+
+</body>
+</html>
